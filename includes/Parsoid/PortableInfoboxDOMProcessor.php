@@ -29,6 +29,8 @@ class PortableInfoboxDOMProcessor extends DOMProcessor {
 		// @var Document|DocumentFragment $node
 		$child = $node->firstChild;
 
+		$infoboxIndex = 0;
+
 		// insipiration taken from Ext:Cite
 		// and also <gallery>
 		while ( $child !== null ) {
@@ -36,6 +38,7 @@ class PortableInfoboxDOMProcessor extends DOMProcessor {
 			if ( $child instanceof Element ) {
 				// we're only interested in PIs in this function
 				if ( DOMUtils::hasTypeOf( $child, 'mw:Extension/infobox' ) ) {
+					$infoboxIndex++;
 					$dataMw = DOMDataUtils::getDataMw( $child );
 					$parsoidData = DOMDataUtils::getDataParsoid( $child )->src;
 
@@ -63,7 +66,7 @@ class PortableInfoboxDOMProcessor extends DOMProcessor {
 						$params = $part->paramInfos;
 
 						$portableInfoboxRenderService = new ParsoidPortableInfoboxRenderService();
-						$portableInfoboxRenderService->renderPI( $extApi, $child, $params, $parsoidData );
+						$portableInfoboxRenderService->renderPI( $extApi, $child, $params, $parsoidData, $infoboxIndex );
 					}
 
 				}

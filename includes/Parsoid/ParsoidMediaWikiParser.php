@@ -12,6 +12,7 @@ class ParsoidMediaWikiParser implements ExternalParser {
 
 	public function __construct(
 		private readonly ParsoidExtensionAPI $api,
+		public int $infoboxIndex,
 	) {
 	}
 

@@ -70,12 +70,13 @@ class PortableInfoboxImagesHelper {
 
 	/**
 	 * @param array $images
+	 * @param int $infoboxIndex
 	 * @return array
 	 */
-	public function extendImageCollectionData( $images ) {
+	public function extendImageCollectionData( $images, $infoboxIndex = 0 ) {
 		$images = array_map(
-			static function ( $image, $index ) {
-				$image['ref'] = $index + 1;
+			static function ( $image, $index ) use ($infoboxIndex) {
+				$image['ref'] = $infoboxIndex . '-' . $index + 1;
 
 				if ( empty( $image['caption'] ) ) {
 					$image['caption'] = $image['name'];
