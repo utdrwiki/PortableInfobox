@@ -86,7 +86,12 @@ class ParsoidMediaNode extends Node {
 			}
 		}
 
-		return count( $data ) > 1 ? $helper->extendImageCollectionData( $data ) : $data;
+		$infoboxIndex = 0;
+		if ( property_exists( $parser, 'infoboxIndex' ) ) {
+			$infoboxIndex = $parser->infoboxIndex;
+		}
+
+		return count( $data ) > 1 ? $helper->extendImageCollectionData( $data, $infoboxIndex ) : $data;
 	}
 
 	private function getImageData( $title, $alt, $caption ) {

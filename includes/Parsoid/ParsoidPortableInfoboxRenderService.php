@@ -57,10 +57,11 @@ class ParsoidPortableInfoboxRenderService extends AbstractPortableInfoboxRenderS
 		ParsoidExtensionAPI $extApi,
 		Element $container,
 		array $params,
-		string $parsoidData
+		string $parsoidData,
+		int $infoboxIndex,
 	): void {
 		$this->buildParamMap( $params );
-		[ $data, $attr ] = $this->prepareInfobox( $extApi, $parsoidData );
+		[ $data, $attr ] = $this->prepareInfobox( $extApi, $parsoidData, $infoboxIndex );
 
 		$themes = $this->getThemes( $attr );
 		$layout = $this->getLayout( $attr );
@@ -88,9 +89,10 @@ class ParsoidPortableInfoboxRenderService extends AbstractPortableInfoboxRenderS
 
 	public function prepareInfobox(
 		ParsoidExtensionAPI $extApi,
-		string $parsoidData
+		string $parsoidData,
+		int $infoboxIndex,
 	): array {
-		$externalParser = new ParsoidMediaWikiParser( $extApi );
+		$externalParser = new ParsoidMediaWikiParser( $extApi, $infoboxIndex );
 		// same as legacy!
 		$infoboxNode = NodeFactory::newFromXML( $parsoidData, $this->paramMap ?: [], $externalParser );
 		$infoboxNode->setExternalParser( $externalParser );
