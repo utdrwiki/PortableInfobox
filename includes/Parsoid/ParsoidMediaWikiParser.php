@@ -4,9 +4,13 @@ namespace PortableInfobox\Parsoid;
 
 use MediaWiki\Title\Title;
 use PortableInfobox\Services\Parser\ExternalParser;
-use Wikimedia\Parsoid\DOM\Element;
+use ReflectionObject;
+use ReflectionProperty;
+use Wikimedia\Parsoid\Core\Source;
+use Wikimedia\Parsoid\Core\SourceString;
 use Wikimedia\Parsoid\Ext\ParsoidExtensionAPI;
 use Wikimedia\Parsoid\Utils\DOMCompat;
+use Wikimedia\Parsoid\Wt2Html\Frame;
 
 class ParsoidMediaWikiParser implements ExternalParser {
 
@@ -20,6 +24,32 @@ class ParsoidMediaWikiParser implements ExternalParser {
 			return null;
 		}
 
+		// Get the frame, then get its src text and override it with the wikitext
+		$apiRO = new ReflectionObject( $this->api );
+		$frameProp = $apiRO->getProperty( 'frame' );
+		/** @var Frame */
+		$frame = $frameProp->getValue( $this->api );
+
+		$frameRO = new ReflectionObject( $frame );
+		if ( !$frameRO->hasProperty( 'source' ) ) {
+			$frameRO = $frameRO->getParentClass();
+		}
+
+		/** @var ?Source */
+		$origSource = null;
+		/** @var ?ReflectionProperty */
+		$sourceProp = null;
+		if ( $frameRO->hasProperty( 'source' ) ) {
+			$sourceProp = $frameRO->getProperty( 'source' );
+			$origSource = $frame->getSource();
+			$sourceProp->setValue( $frame, new SourceString( $wikitext ) );
+		} else {
+			$this->api->log(
+				'fatal/PI',
+				'Could not override frame source text: srcText property not found on frame.'
+			);
+		}
+
 		$paramParsed = $this->api->wikitextToDOM( $wikitext, [
 			// this differs from earlier as we need the frame to be able to grab the
 			// params the user passed - parsoid handles this internally it appears
@@ -27,6 +57,10 @@ class ParsoidMediaWikiParser implements ExternalParser {
 			'parseOpts' => [ 'context' => 'inline' ],
 		], true );
 		'@phan-var Element $paramParsed';
+
+		if ( $origSource && $sourceProp ) {
+			$sourceProp->setValue( $frame, $origSource );
+		}
 
 		// we don't want Parsoid to wrap in a span or add a typeof here,
 		// just interested in the content
