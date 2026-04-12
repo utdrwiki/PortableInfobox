@@ -118,8 +118,8 @@ class ParsoidPortableInfoboxRenderService extends AbstractPortableInfoboxRenderS
 		// we don't have access to the frame here, but what we do have is the params and their values we got earlier, so
 		// we can get the value for that - I think this works but I'm a bit confused alas!
 		if ( !empty( $attr['theme-source' ] ) ) {
-			$variableTheme = $this->paramMap[ $attr['theme-source'] ];
-			if ( $variableTheme ) {
+			$variableTheme = $this->paramMap[ $attr['theme-source'] ] ?? '';
+			if ( !empty( $variableTheme ) ) {
 				$themes[] = $variableTheme;
 			}
 		}
