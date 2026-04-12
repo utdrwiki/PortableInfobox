@@ -42,8 +42,6 @@ class PortableInfoboxDOMProcessor extends DOMProcessor {
 					$dataMw = DOMDataUtils::getDataMw( $child );
 					$parsoidData = DOMDataUtils::getDataParsoid( $child )->src;
 
-					$parts = $dataMw->parts;
-
 					// remove the existing stuff that is generated on the first pass of Parsoid
 					// Note: this is probably a bit of a hacky solution, since we will have already
 					// processed the parser tag at this point and ended up with the mangled HTML
@@ -55,18 +53,23 @@ class PortableInfoboxDOMProcessor extends DOMProcessor {
 						$child->removeChild( $child->firstChild );
 					}
 
-					foreach ( $parts as $part ) {
-						// add our parts to the params info
-						// this will get us the key => value of the parameters that the
-						// user passed to the template from the article,
-						// ie we might get something like
-						// params['name'] = [ 'k' => 'name', 'valueWt' => 'John Doe' ]
-						// which is something akin to what PortableInfoboxParserTagController::renderInfobox()
-						// expects to be passed, albeit we'll need to fudge it a bit!
-						$params = $part->paramInfos;
-
+					if ( empty( $dataMw->parts ) ) {
 						$portableInfoboxRenderService = new ParsoidPortableInfoboxRenderService();
-						$portableInfoboxRenderService->renderPI( $extApi, $child, $params, $parsoidData, $infoboxIndex );
+						$portableInfoboxRenderService->renderPI( $extApi, $child, [], $parsoidData, $infoboxIndex );
+					} else {
+						foreach ( $dataMw->parts as $part ) {
+							// add our parts to the params info
+							// this will get us the key => value of the parameters that the
+							// user passed to the template from the article,
+							// ie we might get something like
+							// params['name'] = [ 'k' => 'name', 'valueWt' => 'John Doe' ]
+							// which is something akin to what PortableInfoboxParserTagController::renderInfobox()
+							// expects to be passed, albeit we'll need to fudge it a bit!
+							$params = $part->paramInfos;
+	
+							$portableInfoboxRenderService = new ParsoidPortableInfoboxRenderService();
+							$portableInfoboxRenderService->renderPI( $extApi, $child, $params, $parsoidData, $infoboxIndex );
+						}
 					}
 
 				}
