@@ -2,14 +2,11 @@
 
 namespace PortableInfobox\Parsoid;
 
-use Wikimedia\Parsoid\DOM\Document;
-use Wikimedia\Parsoid\DOM\DocumentFragment;
-use Wikimedia\Parsoid\DOM\Element;
 use Wikimedia\Parsoid\DOM\Node;
 use Wikimedia\Parsoid\Ext\DOMDataUtils;
 use Wikimedia\Parsoid\Ext\DOMProcessor;
-use Wikimedia\Parsoid\Ext\DOMUtils;
 use Wikimedia\Parsoid\Ext\ParsoidExtensionAPI;
+use Wikimedia\Parsoid\Utils\DOMCompat;
 
 class PortableInfoboxDOMProcessor extends DOMProcessor {
 
@@ -25,56 +22,40 @@ class PortableInfoboxDOMProcessor extends DOMProcessor {
 		Node $node,
 		array $options
 	): void {
-		'@phan-var Document|DocumentFragment $node';
-		// @var Document|DocumentFragment $node
-		$child = $node->firstChild;
+		$infoboxes = DOMCompat::querySelectorAll( $node, 'aside[typeof*="mw:Extension/infobox"]' );
+		foreach ( $infoboxes as $infoboxIndex => $child ) {
+			$dataMw = DOMDataUtils::getDataMw( $child );
+			$parsoidData = DOMDataUtils::getDataParsoid( $child )->src;
 
-		$infoboxIndex = 0;
+			// remove the existing stuff that is generated on the first pass of Parsoid
+			// Note: this is probably a bit of a hacky solution, since we will have already
+			// processed the parser tag at this point and ended up with the mangled HTML
+			// ideally, we would do all of this in the main parse, but Parsoid does not currently
+			// grant us the ability to do that, so just remove whatever gobbldy-guck was generated
+			// in the first pass. This is probably a bit of a performance hog, but it will be cached in the
+			// parser cache for subsequent reads so is a one-shot-pony until the cache expires.
+			while ( $child->firstChild !== null ) {
+				$child->removeChild( $child->firstChild );
+			}
 
-		// insipiration taken from Ext:Cite
-		// and also <gallery>
-		while ( $child !== null ) {
-			$nextChild = $child->nextSibling;
-			if ( $child instanceof Element ) {
-				// we're only interested in PIs in this function
-				if ( DOMUtils::hasTypeOf( $child, 'mw:Extension/infobox' ) ) {
-					$infoboxIndex++;
-					$dataMw = DOMDataUtils::getDataMw( $child );
-					$parsoidData = DOMDataUtils::getDataParsoid( $child )->src;
+			if ( empty( $dataMw->parts ) ) {
+				$portableInfoboxRenderService = new ParsoidPortableInfoboxRenderService();
+				$portableInfoboxRenderService->renderPI( $extApi, $child, [], $parsoidData, $infoboxIndex );
+			} else {
+				foreach ( $dataMw->parts as $part ) {
+					// add our parts to the params info
+					// this will get us the key => value of the parameters that the
+					// user passed to the template from the article,
+					// ie we might get something like
+					// params['name'] = [ 'k' => 'name', 'valueWt' => 'John Doe' ]
+					// which is something akin to what PortableInfoboxParserTagController::renderInfobox()
+					// expects to be passed, albeit we'll need to fudge it a bit!
+					$params = $part->paramInfos;
 
-					// remove the existing stuff that is generated on the first pass of Parsoid
-					// Note: this is probably a bit of a hacky solution, since we will have already
-					// processed the parser tag at this point and ended up with the mangled HTML
-					// ideally, we would do all of this in the main parse, but Parsoid does not currently
-					// grant us the ability to do that, so just remove whatever gobbldy-guck was generated
-					// in the first pass. This is probably a bit of a performance hog, but it will be cached in the
-					// parser cache for subsequent reads so is a one-shot-pony until the cache expires.
-					while ( $child->firstChild !== null ) {
-						$child->removeChild( $child->firstChild );
-					}
-
-					if ( empty( $dataMw->parts ) ) {
-						$portableInfoboxRenderService = new ParsoidPortableInfoboxRenderService();
-						$portableInfoboxRenderService->renderPI( $extApi, $child, [], $parsoidData, $infoboxIndex );
-					} else {
-						foreach ( $dataMw->parts as $part ) {
-							// add our parts to the params info
-							// this will get us the key => value of the parameters that the
-							// user passed to the template from the article,
-							// ie we might get something like
-							// params['name'] = [ 'k' => 'name', 'valueWt' => 'John Doe' ]
-							// which is something akin to what PortableInfoboxParserTagController::renderInfobox()
-							// expects to be passed, albeit we'll need to fudge it a bit!
-							$params = $part->paramInfos;
-	
-							$portableInfoboxRenderService = new ParsoidPortableInfoboxRenderService();
-							$portableInfoboxRenderService->renderPI( $extApi, $child, $params, $parsoidData, $infoboxIndex );
-						}
-					}
-
+					$portableInfoboxRenderService = new ParsoidPortableInfoboxRenderService();
+					$portableInfoboxRenderService->renderPI( $extApi, $child, $params, $parsoidData, $infoboxIndex );
 				}
 			}
-			$child = $nextChild;
 		}
 	}
 }
