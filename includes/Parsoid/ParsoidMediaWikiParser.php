@@ -68,9 +68,9 @@ class ParsoidMediaWikiParser implements ExternalParser {
 		return DOMCompat::getOuterHTML( $paramParsed );
 	}
 
-	/** @param $wikitext @phan-unused-param */
 	public function replaceVariables( $wikitext ) {
 		// no-op - I think handled by ->wikiTextToDOM?
+		return $wikitext;
 	}
 
 	/**
